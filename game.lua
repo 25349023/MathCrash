@@ -32,12 +32,6 @@ local CardGroup
 local cardImage = {}
 setmetatable(cardImage, weakMeta)
 
-local cards = {}
-local deckTop = 1
-for i, v in ipairs(dofile(system.pathForFile('carddata.lua'))) do
-    cards[i] = card.Card:new(v)
-end
-
 local player
 local opponent
 
@@ -45,42 +39,6 @@ local opponent
 local function clickToFront(event)
     event.target:toFront()
     return true
-end
-
-
-local function shuffleCards(cd, num)
-    --[[
-    shuffle cards from 1 to num (default to sizeof cards)
-    ]]
-    num = num or #cd
-    for i=0, 50 do
-        a = math.random(num)
-        b = math.random(num)
-        cd[a], cd[b] = cd[b], cd[a]
-    end
-    
-end
-
-
-local function calculateGrade(handCard, initPt)
-    local gsum = math.floor(initPt / 2)
-    for _, c in ipairs(handCard) do
-        gsum = gsum + c.grading
-    end
-    return gsum
-end
-
-
-local function checkInitialState(handCard, initPt)
-    local grade = calculateGrade(handCard, initPt)
-    local spCnt = 0
-    for _, c in ipairs(handCard) do
-        if c.special then
-            spCnt = spCnt + 1
-        end
-    end
-    local gdPass = -1 <= grade and grade <= 6
-    return gdPass and spCnt <= 1
 end
 
 
@@ -109,46 +67,37 @@ function scene:create( event )
     backgrounds['bgRect'] = display.newRect(backgroundGroup, centerX, centerY, width, height)
     backgrounds['bgRect'].fill = { 1, 1, 0.9 }
     
-    --[=[
-    for i=0,4 do
-        for j=1,3 do
-            k = i * 3 + j
-            cardImage[k] = display.newImageRect(CardGroup, cardSheet, k, 271, 431)
-            cardImage[k].xScale = 0.3
-            cardImage[k].yScale = 0.3
-            cardImage[k].isVisible = false
-            --[[
-            cards[k].x = centerX - 200 + j * 100
-            cards[k].y = centerY - 250 + i * 120
-            --]]
-            cardImage[k]:addEventListener('tap', clickToFront)
-        end
-    end
-    ]=]
+    --[[
+    cards[k].x = centerX - 200 + j * 100
+    cards[k].y = centerY - 250 + i * 120
+    --]]
     
     player = character.Character:new{ currPoint=math.random(10) }
+    player:init(CardGroup, cardSheet)
+    player:shuffleDeck()
     
-    for i, c in ipairs(cards) do
-        c.image = display.newImageRect(CardGroup, cardSheet, cards[i].imgIndex, 271, 431)
-        c.image.xScale = 0.3
-        c.image.yScale = 0.3
-        c.image.isVisible = false
-        c.image:addEventListener('tap', clickToFront)
-    end
-        
-    shuffleCards(cards)
-    for i=1,3 do
-        cards[i].image.x = centerX - 200 + i * 100
-        cards[i].image.y = centerY + 200
-        cards[i].image.isVisible = true
-        player.handCard[#player.handCard+1] = cards[i]
-        print('card : ' .. cards[i].op .. ' ' .. cards[i].data)
-    end
+    -- draw init card
+    print('player init point: ' .. player.currPoint)
+    local i = 1
+    repeat
+        local c = player:drawCard()
+        player.handCard[i] = c
+        if not c.image.isVisible and player:checkInitialState() then
+            c.image.x = centerX - 200 + i * 100
+            c.image.y = centerY + 200
+            c.image.isVisible = true
+            print('card : ' .. c.op .. ' ' .. c.data)        
+            i = i + 1
+        else
+            player.handCard[i] = nil
+            print('discard: ' .. c.op .. ' ' .. c.data)
+        end
+    until #player.handCard == 3
+    i = nil
     
+    print('current grade: ' .. player:calculateGrade())
     
-    print('current grade: ' .. calculateGrade(player.handCard, player.currPoint))
-    
-    UI['playerPoint'] = display.newText{ parent=UIGroup, text=player.currPoint, x=centerX, y=centerY,
+    UI['playerPoint'] = display.newText{ parent=UIGroup, text=player.currPoint, x=centerX, y=centerY+50,
         font=composer.getVariable("GameFont"), fontSize=72 }
     UI['playerPoint']:setFillColor(0.2, 0.2, 0.4)
     

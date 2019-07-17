@@ -8,6 +8,8 @@
 
 local composer = require 'composer'
 
+math.randomseed(os.time())
+
 display.setStatusBar(display.HiddenStatusBar)
 
 composer.setVariable("UIFont", native.newFont("SourceSansPro-Black.ttf", 24))

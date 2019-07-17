@@ -1,6 +1,6 @@
 module(..., package.seeall)
 
-Card = { op='', data=0, grading=0, speicial=false, imgIndex=0, image=nil }
+Card = { op='', data=0, grading=0, special=false, imgIndex=0, image=nil }
 
 function Card:new(t)
     t = t or {}

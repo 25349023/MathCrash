@@ -45,8 +45,7 @@ function scene:create( event )
     
     UIGroup = display.newGroup()
     sceneGroup:insert(UIGroup)
-    -- local fillC = { default=, over={0.5, 0.7, 1} }
-    UI['start'] = display.newRoundedRect(UIGroup, centerX, centerY+100, width*2/3, 100, 10)
+    UI['start'] = display.newRoundedRect(UIGroup, centerX, centerY + 100, width * 2 / 3, 100, 10)
     UI['start']:setFillColor(0.4, 0.6, 1)
     UI['startText'] = display.newText{ parent=UIGroup, x=centerX, y=centerY+100, text='Start',
         font='SourceSansPro-Black.ttf', fontSize=48 }
