@@ -14,13 +14,18 @@ function Character:new(t)
     return t
 end
 
-function Character:init(CardGroup, cardSheet)
+function Character:init(CardGroup, cardSheet, hide)
+    hide = hide or false
     for i, v in ipairs(dofile(system.pathForFile('carddata.lua'))) do
         self.deck[i] = card.Card:new(v)
     end
 
     for i, c in ipairs(self.deck) do
-        c.image = display.newImageRect(CardGroup, cardSheet, c.imgIndex, 271, 431)
+        if hide then
+            c.image = display.newImageRect(CardGroup, cardSheet, 16, 271, 431)
+        else
+            c.image = display.newImageRect(CardGroup, cardSheet, c.imgIndex, 271, 431)
+        end
         c.image.xScale = 0.3
         c.image.yScale = 0.3
         c.image.isVisible = false
@@ -42,6 +47,27 @@ function Character:drawCard()
     end
     
     return self.deck[t]
+end
+
+function Character:dealCards(cx, y)
+    local i = 1
+    repeat
+        local c = self:drawCard()
+        self.handCard[i] = c
+        if not c.image.isVisible and self:checkInitialState() then
+            c.image.x = cx - 200 + i * 100
+            c.image.y = y
+            c.image.isVisible = true
+            print('card : ' .. c.op .. ' ' .. c.data)        
+            i = i + 1
+        else
+            self.handCard[i] = nil
+            print('discard: ' .. c.op .. ' ' .. c.data)
+        end
+    until #self.handCard == 3
+    i = nil
+    
+    print('current grade: ' .. self:calculateGrade())
 end
 
 function Character:shuffleDeck(num)

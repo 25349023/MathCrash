@@ -5,7 +5,7 @@ local dt = {
     { op='+', data=7, grading=3, imgIndex=4 },
     { op='-', data=2, grading=-1, imgIndex=5 },
     { op='-', data=3, grading=-1, imgIndex=6 },
-    { op='*', data=2, grading=3, imgIndex=7 },
+    { op='*', data=2, grading=2, imgIndex=7 },
     { op='/', data=2, grading=-2, imgIndex=8 },
     { op='+', data=0, grading=-1, imgIndex=9 },
     { op='-', data=5, grading=-2, imgIndex=10 },

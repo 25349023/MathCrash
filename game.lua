@@ -24,7 +24,7 @@ setmetatable(UI, weakMeta)
 local cardsOption = {
     width=542,
     height=862,
-    numFrames=15
+    numFrames=16
 }
 local cardSheet = graphics.newImageSheet("images/cards/cards.png", cardsOption)
 
@@ -36,7 +36,7 @@ local player
 local opponent
 
 
-local function clickToFront(event)
+local function clickToReveal(event)
     event.target:toFront()
     return true
 end
@@ -76,30 +76,24 @@ function scene:create( event )
     player:init(CardGroup, cardSheet)
     player:shuffleDeck()
     
+    opponent = character.Character:new{ currPoint=math.random(10) }
+    opponent:init(CardGroup, cardSheet, true)
+    opponent:shuffleDeck()
+    
     -- draw init card
     print('player init point: ' .. player.currPoint)
-    local i = 1
-    repeat
-        local c = player:drawCard()
-        player.handCard[i] = c
-        if not c.image.isVisible and player:checkInitialState() then
-            c.image.x = centerX - 200 + i * 100
-            c.image.y = centerY + 200
-            c.image.isVisible = true
-            print('card : ' .. c.op .. ' ' .. c.data)        
-            i = i + 1
-        else
-            player.handCard[i] = nil
-            print('discard: ' .. c.op .. ' ' .. c.data)
-        end
-    until #player.handCard == 3
-    i = nil
-    
-    print('current grade: ' .. player:calculateGrade())
+    player:dealCards(centerX, centerY + 200)
+    print('opponent init point: ' .. opponent.currPoint)
+    opponent:dealCards(centerX, centerY - 200)
     
     UI['playerPoint'] = display.newText{ parent=UIGroup, text=player.currPoint, x=centerX, y=centerY+50,
         font=composer.getVariable("GameFont"), fontSize=72 }
     UI['playerPoint']:setFillColor(0.2, 0.2, 0.4)
+    UI['opponentPoint'] = display.newText{ parent=UIGroup, text=opponent.currPoint, x=centerX, 
+        y=centerY-50, font=composer.getVariable("GameFont"), fontSize=72 }
+    UI['opponentPoint']:setFillColor(0.4, 0.2, 0.2)
+    UI['midfieldLine'] = display.newLine(UIGroup, centerX - 75, centerY, centerX + 75, centerY)
+    UI['midfieldLine']:setStrokeColor(0.6, 0.6, 0.6)
     
 end
  
