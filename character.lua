@@ -36,7 +36,7 @@ function Character:updatePoint(card)
     self.currPoint = card:calculate(self.currPoint)
 end
 
-function Character:drawCard()
+function Character:drawCard(evt)
     --[[
     Return one card from deck and check if need to shuffle.
     ]]
@@ -45,11 +45,14 @@ function Character:drawCard()
     if self.deckTop == #self.deck - 4 then
         self:shuffleDeck(self.deckTop - 1)
     end
+    if evt then
+        self.deck[t].image:addEventListener('tap', evt)
+    end
     
     return self.deck[t]
 end
 
-function Character:dealCards(cx, y)
+function Character:dealCards(cx, y, evt)
     local i = 1
     repeat
         local c = self:drawCard()
@@ -58,6 +61,9 @@ function Character:dealCards(cx, y)
             c.image.x = cx - 200 + i * 100
             c.image.y = y
             c.image.isVisible = true
+            if evt then
+                c.image:addEventListener('tap', evt)
+            end
             print('card : ' .. c.op .. ' ' .. c.data)        
             i = i + 1
         else
