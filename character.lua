@@ -81,6 +81,11 @@ function Character:playCard(ind, cx)
     transition.to(self.handCard[ind].image, { x=cx, alpha=0.5,
         xScale=0.2, yScale=0.2, time=500 })
 
+    timer.performWithDelay(510, 
+        function()
+            self:updatePoint(self.handCard[ind])
+            transition.fadeOut(self.handCard[ind].image, { time=200 })
+        end )
 end
 
 

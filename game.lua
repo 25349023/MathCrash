@@ -33,13 +33,14 @@ local cardImage = {}
 setmetatable(cardImage, weakMeta)
 
 local player
+local playerAI
 local opponent
 
 local stageSetting = { timeLimit=6 }
 
 local timeLeft = 3
 
-local gameLogic = { state='init', ready=0, opIdx=nil, plIdx=nil }
+local gameLogic = { state='init', ready=0, opIdx=0, plIdx=0 }
 
 
 local function adjustTimer()
@@ -88,7 +89,7 @@ local function countDownReady(event)
         transition.fadeOut(UI['TimerText'], { delay=1000, transition=easing.inOutSine, time=500,
                 onComplete = function(event)
                     adjustTimer()
-                    gameLogic:run()
+                    gameLogic:newRound()
                 end })
     end
 end
@@ -124,10 +125,12 @@ local function selectCard()
     end
 end
 
-local plChooseCardEvent = selectCard()
+local plSelectCardEvent = selectCard()
 
 
-function gameLogic:run()
+function gameLogic:newRound()
+    -- TODO: draw card
+    
     local centerX, centerY = display.contentCenterX, display.contentCenterY
     timeLeft = stageSetting.timeLimit
     self.state = 'playing'
@@ -162,6 +165,11 @@ function gameLogic:calculateAndPK()
         function() player:playCard(pid, centerX) end)
     timer.performWithDelay(500,
         function() opponent.role:playCard(oid, centerX) end)
+    
+    timer.performWithDelay(1200,
+        function() UI['playerPoint'].text = player.currPoint end)
+    timer.performWithDelay(1200,
+        function() UI['opponentPoint'].text = opponent.role.currPoint end)
     
     
 end
@@ -210,6 +218,7 @@ function scene:create( event )
     
     
     player = character.Character:new{ currPoint=math.random(10) }
+    playerAI = ai.RandomAI:new{ role=player }
     player:init(CardGroup, cardSheet)
     player:shuffleDeck()
     
@@ -220,7 +229,7 @@ function scene:create( event )
     
     -- draw init card
     print('player init point: ' .. player.currPoint)
-    player:dealCards(centerX, centerY + 200, plChooseCardEvent)
+    player:dealCards(centerX, centerY + 200, plSelectCardEvent)
     print('opponent init point: ' .. opponent.role.currPoint)
     opponent.role:dealCards(centerX, centerY - 200)
     
