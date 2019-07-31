@@ -9,6 +9,8 @@
 local composer = require 'composer'
 
 math.randomseed(os.time())
+math.random()
+math.random()
 
 display.setStatusBar(display.HiddenStatusBar)
 

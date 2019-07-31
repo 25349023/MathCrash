@@ -9,6 +9,7 @@ local scene = composer.newScene()
 
 local card = require 'card'
 local character = require 'character'
+local ai = require 'ai'
 
 local weakMeta = { __mode='kv' }
 
@@ -34,12 +35,85 @@ setmetatable(cardImage, weakMeta)
 local player
 local opponent
 
+local stageSetting = { timeLimit=6 }
+
 local timeLeft = 3
 
-local function chooseCard()
-    local chosen = nil
+local gameLogic = { state='init', ready=0, opIdx=nil, plIdx=nil }
+
+
+local function adjustTimer()
+    local centerX, centerY = display.contentCenterX, display.contentCenterY
+    UI['Timer'].x, UI['Timer'].y = centerX / 4 + 10, centerY + 80
+    UI['Timer'].path.radius = 30
+    UI['Timer']:setFillColor(1, 0.7, 0.7)
+    UI['Timer']:setStrokeColor(1, 0.42, 0.42)
     
-    return function(event)
+    UI['TimerText'].x, UI['TimerText'].y = UI['Timer'].x, UI['Timer'].y - 1
+    UI['TimerText'].size = 36
+    UI['TimerText'].text = 5
+    -- transition.fadeIn(UI['Timer'], { time=500, transition=easing.inOutSine })
+    -- transition.fadeIn(UI['TimerText'], { time=500, transition=easing.inOutSine })
+end
+
+
+local function countDownGaming(event)
+    timeLeft = timeLeft - 1
+    if timeLeft == 5 then
+        transition.fadeIn(UI['Timer'], { time=300, transition=easing.outSine })
+        transition.fadeIn(UI['TimerText'], { time=300, transition=easing.outSine })
+    end
+    if timeLeft <= 5 then
+        UI['TimerText'].text = timeLeft
+    end
+    if timeLeft <= 0 then
+        print("time's up")
+        transition.fadeOut(UI['Timer'], { delay=200, time=300, transition=easing.inOutSine })
+        transition.fadeOut(UI['TimerText'], { delay=200, time=300, transition=easing.inOutSine })
+    end
+end
+
+
+local function countDownReady(event)
+    timeLeft = timeLeft - 1
+    if timeLeft > 0 then
+        UI['TimerText'].text = tostring(timeLeft)
+    elseif timeLeft == 0 then
+        UI['TimerText'].text = 'Ready'
+        UI['TimerText'].size = 48
+    else
+        UI['TimerText'].text = 'GO!'
+        UI['TimerText'].size = 72
+        transition.fadeOut(UI['Timer'], { delay=1000, transition=easing.inOutSine, time=500 })
+        transition.fadeOut(UI['TimerText'], { delay=1000, transition=easing.inOutSine, time=500,
+                onComplete = function(event)
+                    adjustTimer()
+                    gameLogic:run()
+                end })
+    end
+end
+
+
+local function selectCard()
+    local chosen = nil
+    local centerX, centerY = display.contentCenterX, display.contentCenterY
+    
+    return function (event)
+        if gameLogic.state ~= 'playing' then
+            return false
+        end
+        
+        if chosen == event.target then
+            local ind = assert(player:handCardIndex(event.target), "can't find target in handcard")
+            transition.moveTo(player.handCard[ind].image, 
+                { x=centerX + 100, y=centerY+50, time=800, transition=easing.inOutSine,
+                    onComplete=function() gameLogic:readyForOne() end })
+            chosen.stroke = nil
+            gameLogic.state = 'played'
+            gameLogic.plIdx = ind
+            gameLogic:stopTiming()
+            return true
+        end
         if chosen then
             chosen.stroke = nil
         end
@@ -50,43 +124,63 @@ local function chooseCard()
     end
 end
 
-local plChooseCardEvent = chooseCard()
+local plChooseCardEvent = selectCard()
 
 
-local function shrinkTimer(event)
+function gameLogic:run()
     local centerX, centerY = display.contentCenterX, display.contentCenterY
-    UI['Timer'].x, UI['Timer'].y = centerX / 4 + 10, centerY + 80
-    UI['Timer'].path.radius = 30
-    UI['TimerText'].x, UI['TimerText'].y = UI['Timer'].x, UI['Timer'].y - 1
-    UI['TimerText'].size = 36
-    UI['TimerText'].text = 5
-    transition.fadeIn(UI['Timer'], { time=500, transition=easing.inOutSine })
-    transition.fadeIn(UI['TimerText'], { time=500, transition=easing.inOutSine })
+    timeLeft = stageSetting.timeLimit
+    self.state = 'playing'
+    self.tm = timer.performWithDelay(1000, countDownGaming, timeLeft)
+    
+    local ind = opponent:chooseCard()
+    gameLogic.opIdx = ind
+    transition.moveTo(opponent.role.handCard[ind].image, 
+        { x=centerX - 100, y=centerY-50, time=800, delay=1000, transition=easing.inOutSine,
+          onComplete=function() gameLogic:readyForOne() end })
+    
 end
 
+function gameLogic:calculateAndPK()
+    local centerX, centerY = display.contentCenterX, display.contentCenterY
+    local pid, oid = gameLogic.plIdx, gameLogic.opIdx
+            
+    transition.scaleTo(opponent.role.handCard[oid].image,
+        { xScale=0.001, time=200, transition=easing.inOutSine,
+            onComplete=function()
+                local cd = opponent.role.handCard[oid]
+                local x, y = cd.image.x, cd.image.y
+                cd.image:removeSelf()
+                cd.image = display.newImageRect(CardGroup, cardSheet, cd.imgIndex, 271, 431)
+                cd.image:scale(0.001, 0.3)
+                cd.image.x, cd.image.y = x, y
+                transition.scaleTo(cd.image, 
+                    { xScale=0.3, time=200, transition=easing.inOutSine })
+            end })
+    
+    timer.performWithDelay(500,
+        function() player:playCard(pid, centerX) end)
+    timer.performWithDelay(500,
+        function() opponent.role:playCard(oid, centerX) end)
+    
+    
+end
 
-local function CountDownReady(event)
-    timeLeft = timeLeft - 1
-    if timeLeft > 0 then
-        UI['TimerText'].text = tostring(timeLeft)
-    elseif timeLeft == 0 then
-        UI['TimerText'].text = 'Ready'
-        UI['TimerText'].size = 48
-    else 
-        UI['TimerText'].text = 'GO!'
-        UI['TimerText'].size = 72
-        transition.fadeOut(UI['Timer'], { delay=1000, transition=easing.inOutSine, time=500 })
-        transition.fadeOut(UI['TimerText'], { delay=1000, transition=easing.inOutSine, time=500,
-                onComplete=shrinkTimer })
+function gameLogic:readyForOne()
+    self.ready = self.ready + 1
+    if self.ready == 2 then
+        print('next stage')
+        gameLogic:calculateAndPK()
     end
-end
-
-
-local function CountDownGaming(event)
-    
     
 end
 
+function gameLogic:stopTiming()
+    timer.cancel(self.tm)
+    transition.fadeOut(UI['Timer'], { delay=400, time=300, transition=easing.inOutSine })
+    transition.fadeOut(UI['TimerText'], { delay=400, time=300, transition=easing.inOutSine })
+
+end
 
 
 -- -----------------------------------------------------------------------------------
@@ -104,12 +198,12 @@ function scene:create( event )
     -- Code here runs when the scene is first created but has not yet appeared on screen
     
     backgroundGroup = display.newGroup()
-    CardGroup = display.newGroup()
     UIGroup = display.newGroup()
+    CardGroup = display.newGroup()
     
     sceneGroup:insert(backgroundGroup)
-    sceneGroup:insert(CardGroup)
     sceneGroup:insert(UIGroup)
+    sceneGroup:insert(CardGroup)
     
     backgrounds['bgRect'] = display.newRect(backgroundGroup, centerX, centerY, width, height)
     backgrounds['bgRect'].fill = { 1, 1, 0.9 }
@@ -119,23 +213,26 @@ function scene:create( event )
     player:init(CardGroup, cardSheet)
     player:shuffleDeck()
     
-    opponent = character.Character:new{ currPoint=math.random(10) }
-    opponent:init(CardGroup, cardSheet, true)
-    opponent:shuffleDeck()
+    opponent = ai.RandomAI:new{ 
+        role=character.Character:new{ currPoint=math.random(10) } }
+    opponent.role:init(CardGroup, cardSheet, true)
+    opponent.role:shuffleDeck()
     
     -- draw init card
     print('player init point: ' .. player.currPoint)
     player:dealCards(centerX, centerY + 200, plChooseCardEvent)
-    print('opponent init point: ' .. opponent.currPoint)
-    opponent:dealCards(centerX, centerY - 200)
+    print('opponent init point: ' .. opponent.role.currPoint)
+    opponent.role:dealCards(centerX, centerY - 200)
     
-    UI['playerPoint'] = display.newText{ parent=UIGroup, text=player.currPoint, x=centerX, y=centerY+50,
-        font=composer.getVariable("GameFont"), fontSize=72 }
+    UI['playerPoint'] = display.newText{ parent=UIGroup, text=player.currPoint, 
+        x=centerX, y=centerY+50, font=composer.getVariable("GameFont"), fontSize=72 }
     UI['playerPoint']:setFillColor(0.2, 0.2, 0.4)
-    UI['opponentPoint'] = display.newText{ parent=UIGroup, text=opponent.currPoint, x=centerX, 
-        y=centerY-50, font=composer.getVariable("GameFont"), fontSize=72 }
+    UI['opponentPoint'] = display.newText{ parent=UIGroup, 
+        text=opponent.role.currPoint, x=centerX, y=centerY-50,
+        font=composer.getVariable("GameFont"), fontSize=72 }
     UI['opponentPoint']:setFillColor(0.4, 0.2, 0.2)
-    UI['midfieldLine'] = display.newLine(UIGroup, centerX - 75, centerY, centerX + 75, centerY)
+    UI['midfieldLine'] = display.newLine(UIGroup, centerX - 75, centerY,
+            centerX + 75, centerY)
     UI['midfieldLine']:setStrokeColor(0.6, 0.6, 0.6)
     
     UI['Timer'] = display.newCircle(UIGroup, centerX, centerY, 80)
@@ -148,15 +245,7 @@ function scene:create( event )
     UI['TimerText']:setFillColor(1, 1, 1)
     UI['TimerText'].alpha = 0
     
-    --[[
-    UI['Timer'] = display.newCircle(UIGroup, centerX / 4 + 10, centerY + 80, 30)
-    UI['Timer']:setFillColor(0.7, 0.9, 1)
-    UI['Timer'].stroke = {0.6, 0.8, 0.9}
-    UI['Timer'].strokeWidth = 10
-    UI['TimerText'] = display.newText{ parent=UIGroup, text=timeLeft, x=UI['Timer'].x, y=UI['Timer'].y-2,
-        font=composer.getVariable('UIFont'), fontSize=44 }
-    UI['TimerText']:setFillColor(1, 1, 1)
-    --]]
+
 end
  
  
@@ -170,7 +259,7 @@ function scene:show( event )
         -- Code here runs when the scene is still off screen (but is about to come on screen)
     elseif ( phase == "did" ) then
         -- Code here runs when the scene is entirely on screen
-        local tm = timer.performWithDelay(1000, CountDownReady, timeLeft + 1)
+        local tm = timer.performWithDelay(1000, countDownReady, timeLeft + 1)
         timer.pause(tm)
         transition.to(UI['TimerText'], { time=500, transition=easing.outCubic, alpha=1 })
         transition.to(UI['Timer'], { time=500, transition=easing.outCubic, alpha=0.9,

@@ -76,6 +76,14 @@ function Character:dealCards(cx, y, evt)
     print('current grade: ' .. self:calculateGrade())
 end
 
+function Character:playCard(ind, cx)
+    print 'play one card'
+    transition.to(self.handCard[ind].image, { x=cx, alpha=0.5,
+        xScale=0.2, yScale=0.2, time=500 })
+
+end
+
+
 function Character:shuffleDeck(num)
     --[[
     shuffle cards from 1 to num (default to sizeof cards)
@@ -106,5 +114,14 @@ function Character:checkInitialState()
     end
     local gdPass = -1 <= grade and grade <= 6
     return gdPass and spCnt <= 1
+end
+
+function Character:handCardIndex(im)
+    for i, c in ipairs(self.handCard) do
+        if c.image == im then
+            return i
+        end
+    end
+    return nil
 end
 
