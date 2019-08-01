@@ -16,12 +16,19 @@ function Card:calculate(x)
     elseif self.op == '-' then
         return x - self.data
     elseif self.op == '*' then
-        return x * self.data
+        local res = x * self.data
+        if res == 0 then
+            return 0
+        end
+        return res
     elseif self.op == '/' then
         return math.ceil(x / self.data)
     elseif self.op == '^' then
         return x ^ self.data
     elseif self.op == '+-' then
+        if x == 0 then
+            return 0
+        end
         return -x
     end
     return x

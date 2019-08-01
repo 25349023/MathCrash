@@ -29,8 +29,8 @@ local cardsOption = {
 local cardSheet = graphics.newImageSheet("images/cards/cards.png", cardsOption)
 
 local CardGroup
-local cardImage = {}
-setmetatable(cardImage, weakMeta)
+-- local cardImage = {}
+-- setmetatable(cardImage, weakMeta)
 
 local player
 local playerAI
@@ -58,23 +58,6 @@ local function adjustTimer()
 end
 
 
-local function countDownGaming(event)
-    timeLeft = timeLeft - 1
-    if timeLeft == 5 then
-        transition.fadeIn(UI['Timer'], { time=300, transition=easing.outSine })
-        transition.fadeIn(UI['TimerText'], { time=300, transition=easing.outSine })
-    end
-    if timeLeft <= 5 then
-        UI['TimerText'].text = timeLeft
-    end
-    if timeLeft <= 0 then
-        print("time's up")
-        transition.fadeOut(UI['Timer'], { delay=200, time=300, transition=easing.inOutSine })
-        transition.fadeOut(UI['TimerText'], { delay=200, time=300, transition=easing.inOutSine })
-    end
-end
-
-
 local function countDownReady(event)
     timeLeft = timeLeft - 1
     if timeLeft > 0 then
@@ -94,10 +77,26 @@ local function countDownReady(event)
     end
 end
 
+local function countDownGaming(event)
+    timeLeft = timeLeft - 1
+    if timeLeft == 5 then
+        transition.fadeIn(UI['Timer'], { time=300, transition=easing.outSine })
+        transition.fadeIn(UI['TimerText'], { time=300, transition=easing.outSine })
+    end
+    if timeLeft <= 5 then
+        UI['TimerText'].text = timeLeft
+    end
+    if timeLeft <= 0 then
+        print("time's up")
+        transition.fadeOut(UI['Timer'], { delay=200, time=300, transition=easing.inOutSine })
+        transition.fadeOut(UI['TimerText'], { delay=200, time=300, transition=easing.inOutSine })
+        timer.performWithDelay(500, gameLogic:selectCard(playerAI:chooseCard()))
+    end
+end
 
-local function selectCard()
+
+local function clickCard()
     local chosen = nil
-    local centerX, centerY = display.contentCenterX, display.contentCenterY
     
     return function (event)
         if gameLogic.state ~= 'playing' then
@@ -106,12 +105,7 @@ local function selectCard()
         
         if chosen == event.target then
             local ind = assert(player:handCardIndex(event.target), "can't find target in handcard")
-            transition.moveTo(player.handCard[ind].image, 
-                { x=centerX + 100, y=centerY+50, time=800, transition=easing.inOutSine,
-                    onComplete=function() gameLogic:readyForOne() end })
-            chosen.stroke = nil
-            gameLogic.state = 'played'
-            gameLogic.plIdx = ind
+            gameLogic:selectCard(ind)
             gameLogic:stopTiming()
             return true
         end
@@ -125,13 +119,22 @@ local function selectCard()
     end
 end
 
-local plSelectCardEvent = selectCard()
+local plOnClickCard = clickCard()
 
+
+function gameLogic:prepare()
+    self.state = 'prepare'
+    self.ready = 0
+    print 'player draw card'
+    player:drawCard()
+    print 'opponent draw card'
+    opponent.role:drawCard()
+    gameLogic:newRound()    
+end
 
 function gameLogic:newRound()
-    -- TODO: draw card
-    
     local centerX, centerY = display.contentCenterX, display.contentCenterY
+        
     timeLeft = stageSetting.timeLimit
     self.state = 'playing'
     self.tm = timer.performWithDelay(1000, countDownGaming, timeLeft)
@@ -142,6 +145,17 @@ function gameLogic:newRound()
         { x=centerX - 100, y=centerY-50, time=800, delay=1000, transition=easing.inOutSine,
           onComplete=function() gameLogic:readyForOne() end })
     
+end
+
+function gameLogic:selectCard(ind)
+    local centerX, centerY = display.contentCenterX, display.contentCenterY
+    
+    transition.moveTo(player.handCard[ind].image, 
+        { x=centerX + 100, y=centerY+50, time=800, transition=easing.inOutSine,
+            onComplete=function() self:readyForOne() end })
+    player.handCard[ind].image.stroke = nil
+    self.state = 'played'
+    self.plIdx = ind
 end
 
 function gameLogic:calculateAndPK()
@@ -171,7 +185,7 @@ function gameLogic:calculateAndPK()
     timer.performWithDelay(1200,
         function() UI['opponentPoint'].text = opponent.role.currPoint end)
     
-    
+    timer.performWithDelay(1500, function() gameLogic:prepare() end)
 end
 
 function gameLogic:readyForOne()
@@ -187,7 +201,6 @@ function gameLogic:stopTiming()
     timer.cancel(self.tm)
     transition.fadeOut(UI['Timer'], { delay=400, time=300, transition=easing.inOutSine })
     transition.fadeOut(UI['TimerText'], { delay=400, time=300, transition=easing.inOutSine })
-
 end
 
 
@@ -217,21 +230,21 @@ function scene:create( event )
     backgrounds['bgRect'].fill = { 1, 1, 0.9 }
     
     
-    player = character.Character:new{ currPoint=math.random(10) }
+    player = character.Character:new{ currPoint=math.random(10), cx=centerX,
+        y=centerY+200, CardGroup=CardGroup, cardSheet=cardSheet }
     playerAI = ai.RandomAI:new{ role=player }
-    player:init(CardGroup, cardSheet)
-    player:shuffleDeck()
+    player:init(plOnClickCard)
     
     opponent = ai.RandomAI:new{ 
-        role=character.Character:new{ currPoint=math.random(10) } }
-    opponent.role:init(CardGroup, cardSheet, true)
-    opponent.role:shuffleDeck()
+        role=character.Character:new{ currPoint=math.random(10), cx=centerX,
+            y=centerY-200, hide=true, CardGroup=CardGroup, cardSheet=cardSheet } }
+    opponent.role:init()
     
     -- draw init card
     print('player init point: ' .. player.currPoint)
-    player:dealCards(centerX, centerY + 200, plSelectCardEvent)
+    player:dealCards()
     print('opponent init point: ' .. opponent.role.currPoint)
-    opponent.role:dealCards(centerX, centerY - 200)
+    opponent.role:dealCards()
     
     UI['playerPoint'] = display.newText{ parent=UIGroup, text=player.currPoint, 
         x=centerX, y=centerY+50, font=composer.getVariable("GameFont"), fontSize=72 }

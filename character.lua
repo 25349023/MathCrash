@@ -2,7 +2,8 @@ module(..., package.seeall)
 
 local card = require 'card'
 
-Character = { handCard=nil, currPoint=0, deck=nil, deckTop=1 }
+Character = { handCard=nil, currPoint=0, deck=nil, deckTop=1, cx=0, y=0, hide=false,
+              CardGroup=nil, cardSheet=nil }
 
 function Character:new(t)
     t = t or {}
@@ -14,56 +15,46 @@ function Character:new(t)
     return t
 end
 
-function Character:init(CardGroup, cardSheet, hide)
-    hide = hide or false
+function Character:init(evt)
     for i, v in ipairs(dofile(system.pathForFile('carddata.lua'))) do
         self.deck[i] = card.Card:new(v)
     end
 
     for i, c in ipairs(self.deck) do
-        if hide then
-            c.image = display.newImageRect(CardGroup, cardSheet, 16, 271, 431)
+        if self.hide then
+            c.image = display.newImageRect(self.CardGroup, self.cardSheet, 16, 271, 431)
         else
-            c.image = display.newImageRect(CardGroup, cardSheet, c.imgIndex, 271, 431)
+            c.image = display.newImageRect(self.CardGroup, self.cardSheet, c.imgIndex, 271, 431)
+        end
+        if evt then
+            c.image:addEventListener('tap', evt)
         end
         c.image.xScale = 0.3
         c.image.yScale = 0.3
         c.image.isVisible = false
     end
+    self:_shuffleDeck()
 end
 
-function Character:updatePoint(card)
+function Character:_updatePoint(card)
     self.currPoint = card:calculate(self.currPoint)
 end
 
-function Character:drawCard(evt)
-    --[[
-    Return one card from deck and check if need to shuffle.
-    ]]
-    local t = self.deckTop
-    self.deckTop = self.deckTop % #self.deck + 1
-    if self.deckTop == #self.deck - 4 then
-        self:shuffleDeck(self.deckTop - 1)
-    end
-    if evt then
-        self.deck[t].image:addEventListener('tap', evt)
-    end
-    
-    return self.deck[t]
+function Character:drawCard()
+    local cd = self:_drawCard()
+    print('card : ' .. cd.op .. ' ' .. cd.data)
+    self:_insertCardIntoHand(cd)
 end
 
-function Character:dealCards(cx, y, evt)
+function Character:dealCards()
     local i = 1
     repeat
-        local c = self:drawCard()
+        local c = self:_drawCard()
         self.handCard[i] = c
-        if not c.image.isVisible and self:checkInitialState() then
-            c.image.x = cx - 200 + i * 100
-            c.image.y = y
+        if self:checkInitialState() then
+            c.image.x = self.cx - 200 + i * 100
+            c.image.y = self.y
             c.image.isVisible = true
-            if evt then
-                c.image:addEventListener('tap', evt)
-            end
             print('card : ' .. c.op .. ' ' .. c.data)        
             i = i + 1
         else
@@ -76,20 +67,78 @@ function Character:dealCards(cx, y, evt)
     print('current grade: ' .. self:calculateGrade())
 end
 
-function Character:playCard(ind, cx)
+function Character:playCard(ind)
     print 'play one card'
-    transition.to(self.handCard[ind].image, { x=cx, alpha=0.5,
+    local cd = self.handCard[ind]
+    transition.to(cd.image, { x=self.cx, alpha=0.5,
         xScale=0.2, yScale=0.2, time=500 })
 
     timer.performWithDelay(510, 
         function()
-            self:updatePoint(self.handCard[ind])
-            transition.fadeOut(self.handCard[ind].image, { time=200 })
-        end )
+            self:_updatePoint(cd)
+            transition.fadeOut(cd.image, { time=200,
+                onComplete=function() 
+                    self:_handleUsedCard(cd)
+                    self.handCard[ind] = nil
+                end })
+        end)
+end
+
+function Character:handCardIndex(im)
+    for i, c in ipairs(self.handCard) do
+        if c.image == im then
+            return i
+        end
+    end
+    return nil
 end
 
 
-function Character:shuffleDeck(num)
+function Character:_drawCard()
+    --[[
+    Return one card from deck and check if need to shuffle.
+    ]]
+    local t 
+    repeat
+        t = self.deckTop
+        self.deckTop = self.deckTop % #self.deck + 1
+        if self.deckTop == #self.deck - 4 then
+            self:_shuffleDeck(self.deckTop - 1)
+        end
+    until not self.deck[t].image.isVisible
+     
+    assert(not self.deck[t].image.isVisible, 'drawn card should be invisible.')
+    return self.deck[t]
+end
+
+function Character:_insertCardIntoHand(cd)
+    for i = 1, 3 do
+        if self.handCard[i] == nil then
+            self.handCard[i] = cd
+            cd.image.x = self.cx - 200 + i * 100
+            cd.image.y = self.y
+            cd.image.isVisible = true
+        end
+    end
+end
+
+function Character:_handleUsedCard(cd)
+    if self.hide then
+        cd.image:removeSelf()
+        cd.image = display.newImageRect(self.CardGroup, self.cardSheet, 16, 271, 431)
+        cd.image.isVisible = false
+        cd.image:scale(0.3, 0.3)
+        return
+    end
+    
+    cd.image.isVisible = false
+    cd.image.xScale = 0.3
+    cd.image.yScale = 0.3
+    cd.image.alpha = 1
+end
+
+
+function Character:_shuffleDeck(num)
     --[[
     shuffle cards from 1 to num (default to sizeof cards)
     ]]
@@ -119,14 +168,5 @@ function Character:checkInitialState()
     end
     local gdPass = -1 <= grade and grade <= 6
     return gdPass and spCnt <= 1
-end
-
-function Character:handCardIndex(im)
-    for i, c in ipairs(self.handCard) do
-        if c.image == im then
-            return i
-        end
-    end
-    return nil
 end
 
