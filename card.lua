@@ -11,25 +11,22 @@ function Card:new(t)
 end
 
 function Card:calculate(x)
+    local res = x
     if self.op == '+' then
-        return x + self.data
+        res = x + self.data
     elseif self.op == '-' then
-        return x - self.data
+        res = x - self.data
     elseif self.op == '*' then
-        local res = x * self.data
-        if res == 0 then
-            return 0
-        end
-        return res
+        res = x * self.data
     elseif self.op == '/' then
-        return math.ceil(x / self.data)
+        res = math.ceil(x / self.data)
     elseif self.op == '^' then
-        return x ^ self.data
+        res = x ^ self.data
     elseif self.op == '+-' then
-        if x == 0 then
-            return 0
-        end
-        return -x
+        res = -x
     end
-    return x
+    if res == 0 then
+        return 0
+    end
+    return res
 end

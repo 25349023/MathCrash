@@ -1,31 +1,31 @@
 local composer = require( "composer" )
- 
+
 local scene = composer.newScene()
- 
+
 -- -----------------------------------------------------------------------------------
 -- Code outside of the scene event functions below will only be executed ONCE unless
 -- the scene is removed entirely (not recycled) via "composer.removeScene()"
 -- -----------------------------------------------------------------------------------
- 
- 
- 
- 
+
+
+
+
 -- -----------------------------------------------------------------------------------
 -- Scene event functions
 -- -----------------------------------------------------------------------------------
- 
+
 -- create()
 function scene:create( event )
- 
+
     local sceneGroup = self.view
     -- Code here runs when the scene is first created but has not yet appeared on screen
- 
+
 end
- 
- 
+
+
 -- show()
 function scene:show( event )
- 
+
     local sceneGroup = self.view
     local phase = event.phase
  
@@ -37,8 +37,8 @@ function scene:show( event )
  
     end
 end
- 
- 
+
+
 -- hide()
 function scene:hide( event )
  
@@ -53,8 +53,8 @@ function scene:hide( event )
  
     end
 end
- 
- 
+
+
 -- destroy()
 function scene:destroy( event )
  
@@ -62,8 +62,8 @@ function scene:destroy( event )
     -- Code here runs prior to the removal of scene's view
  
 end
- 
- 
+
+
 -- -----------------------------------------------------------------------------------
 -- Scene event function listeners
 -- -----------------------------------------------------------------------------------
@@ -72,5 +72,5 @@ scene:addEventListener( "show", scene )
 scene:addEventListener( "hide", scene )
 scene:addEventListener( "destroy", scene )
 -- -----------------------------------------------------------------------------------
- 
+
 return scene

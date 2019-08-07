@@ -7,6 +7,8 @@ local scene = composer.newScene()
 -- the scene is removed entirely (not recycled) via "composer.removeScene()"
 -- -----------------------------------------------------------------------------------
 
+local widget = require 'widget'
+
 local card = require 'card'
 local character = require 'character'
 local ai = require 'ai'
@@ -42,10 +44,46 @@ local timeLeft = 3
 
 local gameLogic = { state='init', ready=0, opIdx=0, plIdx=0 }
 
+local hb = {}
+
+function hb.newHealthBar(params)
+    --[[
+    params::
+        x, y: x/y coordinate of the health bar
+        width: the width of the health bar
+        height: the height of the health bar, default is 25
+        color, strokeColor: the color of the health bar
+        strokeWidth: the width of stroke, default is 3
+        parent: the parent of the health bar
+    returns::
+        shell, content: shape objects
+    ]]
+    local shell, content
+    params.height = params.height or 25
+    params.strokeWidth = params.strokeWidth or 3
+    
+    if params.parent then
+        shell = display.newRoundedRect(params.parent, params.x, params.y,
+            params.width, params.height, 4)
+        content = display.newRoundedRect(params.parent, params.x, params.y,
+            params.width - 8, params.height - 8, 2)
+    else
+        shell = display.newRoundedRect(params.x, params.y,
+            params.width, params.height, 4)
+        content = display.newRoundedRect(params.x, params.y,
+            params.width - 8, params.height - 8, 2)
+    end
+    shell:setFillColor(1, 1, 1, 0)
+    shell:setStrokeColor(unpack(params.strokeColor))
+    shell.strokeWidth = params.strokeWidth
+    content:setFillColor(unpack(params.color))
+    return shell, content
+end
+
 
 local function adjustTimer()
     local centerX, centerY = display.contentCenterX, display.contentCenterY
-    UI['Timer'].x, UI['Timer'].y = centerX / 4 + 10, centerY + 80
+    UI['Timer'].x, UI['Timer'].y = centerX / 4 + 20, centerY + 80
     UI['Timer'].path.radius = 30
     UI['Timer']:setFillColor(1, 0.7, 0.7)
     UI['Timer']:setStrokeColor(1, 0.42, 0.42)
@@ -87,10 +125,12 @@ local function countDownGaming(event)
         UI['TimerText'].text = timeLeft
     end
     if timeLeft <= 0 then
+        gameLogic.state = 'timeup'
         print("time's up")
         transition.fadeOut(UI['Timer'], { delay=200, time=300, transition=easing.inOutSine })
         transition.fadeOut(UI['TimerText'], { delay=200, time=300, transition=easing.inOutSine })
-        timer.performWithDelay(500, gameLogic:selectCard(playerAI:chooseCard()))
+        timer.performWithDelay(500, function()
+                gameLogic:selectCard(playerAI:chooseCard()) end)
     end
 end
 
@@ -121,6 +161,31 @@ end
 
 local plOnClickCard = clickCard()
 
+local function Pause(event)
+    if gameLogic.state ~= 'playing' then
+        return
+    end
+    UI['Pause'].isVisible = false
+    UI['Play'].isVisible = true
+    timer.pause(gameLogic.tm)
+    gameLogic.state = 'pause'
+    composer.showOverlay('options', { time=300, effect='fade', isModal=true })
+end
+
+function scene:Resume()
+    UI['Play'].isVisible = false
+    UI['Pause'].isVisible = true
+    timer.resume(gameLogic.tm)
+    gameLogic.state = 'playing'
+end
+
+function gameLogic:init()
+    self.state = 'init'
+    self.ready = 0
+    self.opIdx = 0
+    self.plIdx = 0
+    timeLeft = 3
+end
 
 function gameLogic:prepare()
     self.state = 'prepare'
@@ -229,6 +294,7 @@ function scene:create( event )
     backgrounds['bgRect'] = display.newRect(backgroundGroup, centerX, centerY, width, height)
     backgrounds['bgRect'].fill = { 1, 1, 0.9 }
     
+    gameLogic:init()
     
     player = character.Character:new{ currPoint=math.random(10), cx=centerX,
         y=centerY+200, CardGroup=CardGroup, cardSheet=cardSheet }
@@ -266,8 +332,19 @@ function scene:create( event )
         y=UI['Timer'].y-2, font=composer.getVariable('UIFont'), fontSize=72 }
     UI['TimerText']:setFillColor(1, 1, 1)
     UI['TimerText'].alpha = 0
+    UI['Pause'] = display.newImageRect(UIGroup, 'images/UI/pause.png', 32, 32)
+    UI['Pause'].x, UI['Pause'].y = 16, 16
+    UI['Pause']:addEventListener('tap', Pause)
+    UI['Play'] = display.newImageRect(UIGroup, 'images/UI/play.png', 32, 32)
+    UI['Play'].x, UI['Play'].y = 16, 16
+    UI['Play'].isVisible = false
+    --[[
+    UI['plHealBar'], UI['plHealBarBorder'] = 
+        hb.newHealthBar{ parent=UIGroup, x=centerX, y=height - 25, width=width*2/3,
+            color={1, 0.4, 0.4}, strokeColor={1, 0.2, 0.2}, strokeWidth=4 }
     
-
+    UI['plHealthBar'] = widget.newProgressView{ x=centerX, y=height - 25, width=width/2, }
+    --]]
 end
  
  
@@ -286,6 +363,7 @@ function scene:show( event )
         transition.to(UI['TimerText'], { time=500, transition=easing.outCubic, alpha=1 })
         transition.to(UI['Timer'], { time=500, transition=easing.outCubic, alpha=0.9,
                 onComplete=function() timer.resume(tm); UI['TimerText'].alpha=1 end })
+        print(#player.deck)
     end
 end
  
@@ -301,7 +379,8 @@ function scene:hide( event )
  
     elseif ( phase == "did" ) then
         -- Code here runs immediately after the scene goes entirely off screen
- 
+        composer.removeScene('game', true)
+        timer.cancel(gameLogic.tm)
     end
 end
  
@@ -311,7 +390,7 @@ function scene:destroy( event )
  
     local sceneGroup = self.view
     -- Code here runs prior to the removal of scene's view
- 
+    timer.cancel(gameLogic.tm)
 end
  
  

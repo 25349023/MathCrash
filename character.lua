@@ -2,8 +2,8 @@ module(..., package.seeall)
 
 local card = require 'card'
 
-Character = { handCard=nil, currPoint=0, deck=nil, deckTop=1, cx=0, y=0, hide=false,
-              CardGroup=nil, cardSheet=nil }
+Character = { handCard=nil, currPoint=0, deck=nil, deckTop=1, cx=0, y=0, health=100,
+              hide=false, CardGroup=nil, cardSheet=nil }
 
 function Character:new(t)
     t = t or {}
