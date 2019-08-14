@@ -1,9 +1,11 @@
 module(..., package.seeall)
 
 local card = require 'card'
+local composer = require 'composer'
+local lastcard = composer.getVariable('cardNums')
 
 Character = { handCard=nil, currPoint=0, deck=nil, deckTop=1, cx=0, y=0, health=100,
-              hide=false, CardGroup=nil, cardSheet=nil }
+              hide=false, CardGroup=nil, cardSheet=nil}
 
 function Character:new(t)
     t = t or {}
@@ -22,7 +24,7 @@ function Character:init(evt)
 
     for i, c in ipairs(self.deck) do
         if self.hide then
-            c.image = display.newImageRect(self.CardGroup, self.cardSheet, 16, 271, 431)
+            c.image = display.newImageRect(self.CardGroup, self.cardSheet, lastcard, 271, 431)
         else
             c.image = display.newImageRect(self.CardGroup, self.cardSheet, c.imgIndex, 271, 431)
         end
@@ -43,7 +45,7 @@ end
 function Character:drawCard()
     local cd = self:_drawCard()
     print('card : ' .. cd.op .. ' ' .. cd.data)
-    self:_insertCardIntoHand(cd)
+    self:_insertCardIntoHand(cd, true)
 end
 
 function Character:dealCards()
@@ -71,12 +73,12 @@ function Character:playCard(ind)
     print 'play one card'
     local cd = self.handCard[ind]
     transition.to(cd.image, { x=self.cx, alpha=0.5,
-        xScale=0.2, yScale=0.2, time=500 })
+        xScale=0.2, yScale=0.2, time=300 })
 
-    timer.performWithDelay(510, 
+    timer.performWithDelay(310, 
         function()
             self:_updatePoint(cd)
-            transition.fadeOut(cd.image, { time=200,
+            transition.fadeOut(cd.image, { time=100,
                 onComplete=function() 
                     self:_handleUsedCard(cd)
                     self.handCard[ind] = nil
@@ -92,6 +94,16 @@ function Character:handCardIndex(im)
     end
     return nil
 end
+
+
+function Character:takeDamage(amount)
+    self.health = self.health - amount
+    if self.health < 0 then
+        self.health = 0
+    end
+    return self.health == 0
+end
+
 
 
 function Character:_drawCard()
@@ -111,12 +123,17 @@ function Character:_drawCard()
     return self.deck[t]
 end
 
-function Character:_insertCardIntoHand(cd)
+function Character:_insertCardIntoHand(cd, isAnim)
     for i = 1, 3 do
         if self.handCard[i] == nil then
             self.handCard[i] = cd
             cd.image.x = self.cx - 200 + i * 100
             cd.image.y = self.y
+            if isAnim then 
+                cd.image.alpha = 0
+                cd.image.isVisible = true
+                transition.fadeIn(cd.image, { time=500, transition=inOutSine })
+            end
             cd.image.isVisible = true
         end
     end
@@ -125,7 +142,7 @@ end
 function Character:_handleUsedCard(cd)
     if self.hide then
         cd.image:removeSelf()
-        cd.image = display.newImageRect(self.CardGroup, self.cardSheet, 16, 271, 431)
+        cd.image = display.newImageRect(self.CardGroup, self.cardSheet, lastcard, 271, 431)
         cd.image.isVisible = false
         cd.image:scale(0.3, 0.3)
         return

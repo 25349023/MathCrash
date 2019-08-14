@@ -26,13 +26,11 @@ setmetatable(UI, weakMeta)
 local cardsOption = {
     width=542,
     height=862,
-    numFrames=16
+    numFrames=composer.getVariable('cardNums')
 }
 local cardSheet = graphics.newImageSheet("images/cards/cards.png", cardsOption)
 
 local CardGroup
--- local cardImage = {}
--- setmetatable(cardImage, weakMeta)
 
 local player
 local playerAI
@@ -51,35 +49,57 @@ function hb.newHealthBar(params)
     params::
         x, y: x/y coordinate of the health bar
         width: the width of the health bar
-        height: the height of the health bar, default is 25
-        color, strokeColor: the color of the health bar
-        strokeWidth: the width of stroke, default is 3
+        height: the height of the health bar
+        cwidth: the width of the health content
+        cheight: the height of the health content
         parent: the parent of the health bar
     returns::
-        shell, content: shape objects
+        shell, content: display objects
     ]]
     local shell, content
-    params.height = params.height or 25
-    params.strokeWidth = params.strokeWidth or 3
     
     if params.parent then
-        shell = display.newRoundedRect(params.parent, params.x, params.y,
-            params.width, params.height, 4)
-        content = display.newRoundedRect(params.parent, params.x, params.y,
-            params.width - 8, params.height - 8, 2)
+        shell = display.newImageRect(params.parent, 'images/UI/healthBar2.png',
+            params.width, params.height)
+        content = display.newImageRect(params.parent, 'images/UI/health2.png',
+            params.cwidth, params.cheight)
     else
-        shell = display.newRoundedRect(params.x, params.y,
-            params.width, params.height, 4)
-        content = display.newRoundedRect(params.x, params.y,
-            params.width - 8, params.height - 8, 2)
+        shell = display.newImageRect('images/UI/healthBar2.png', params.width,
+            params.height)
+        content = display.newImageRect('images/UI/health2.png', params.cwidth,
+            params.cheight)
     end
-    shell:setFillColor(1, 1, 1, 0)
-    shell:setStrokeColor(unpack(params.strokeColor))
-    shell.strokeWidth = params.strokeWidth
-    content:setFillColor(unpack(params.color))
+    shell.x, shell.y = params.x, params.y
+    content.x, content.y = params.x - params.cwidth / 2, params.y
+    content.anchorX = 0
+    --content.xScale = 0.5
+    
     return shell, content
 end
 
+function hb.setHpTo(healthContainer, hp)
+    percent = hp / 100
+    if percent <= 0 then
+        percent = 0.001
+        transition.scaleTo(healthContainer, { xScale=percent, time=500, 
+            transition=easing.outCubic,
+            onComplete=function(target) target.isVisible = false end })
+    else
+        transition.scaleTo(healthContainer, { xScale=percent, time=500, 
+            transition=easing.outCubic })
+    end
+end
+
+
+local function getPointText(x)
+    if x == 65536 then
+        return 'Huge'
+    elseif x == -65536 then
+        return 'Tiny'
+    else
+        return x
+    end
+end
 
 local function adjustTimer()
     local centerX, centerY = display.contentCenterX, display.contentCenterY
@@ -207,7 +227,7 @@ function gameLogic:newRound()
     local ind = opponent:chooseCard()
     gameLogic.opIdx = ind
     transition.moveTo(opponent.role.handCard[ind].image, 
-        { x=centerX - 100, y=centerY-50, time=800, delay=1000, transition=easing.inOutSine,
+        { x=centerX - 100, y=centerY-50, time=400, delay=1000, transition=easing.inOutSine,
           onComplete=function() gameLogic:readyForOne() end })
     
 end
@@ -216,14 +236,14 @@ function gameLogic:selectCard(ind)
     local centerX, centerY = display.contentCenterX, display.contentCenterY
     
     transition.moveTo(player.handCard[ind].image, 
-        { x=centerX + 100, y=centerY+50, time=800, transition=easing.inOutSine,
+        { x=centerX + 100, y=centerY+50, time=400, transition=easing.inOutSine,
             onComplete=function() self:readyForOne() end })
     player.handCard[ind].image.stroke = nil
     self.state = 'played'
     self.plIdx = ind
 end
 
-function gameLogic:calculateAndPK()
+function gameLogic:calculatePoint()
     local centerX, centerY = display.contentCenterX, display.contentCenterY
     local pid, oid = gameLogic.plIdx, gameLogic.opIdx
             
@@ -246,18 +266,55 @@ function gameLogic:calculateAndPK()
         function() opponent.role:playCard(oid, centerX) end)
     
     timer.performWithDelay(1200,
-        function() UI['playerPoint'].text = player.currPoint end)
+        function() UI['playerPoint'].text =
+            getPointText(player.currPoint) end)
     timer.performWithDelay(1200,
-        function() UI['opponentPoint'].text = opponent.role.currPoint end)
+        function() UI['opponentPoint'].text = 
+            getPointText(opponent.role.currPoint) end)
     
-    timer.performWithDelay(1500, function() gameLogic:prepare() end)
+    timer.performWithDelay(1500, function() gameLogic:attack() end)
 end
+
+function gameLogic:attack()
+    self.state = 'attacking'
+    local diff = player.currPoint - opponent.role.currPoint
+    local over
+    if diff > 0 then
+        local pt = math.ceil(math.log(diff + 1)) * 4
+        print('attack opponent by ' .. pt)
+        if opponent.role:takeDamage(pt) then
+            over = true
+        end
+        hb.setHpTo(UI['opHealth'], opponent.role.health)
+    elseif diff < 0 then
+        local pt = math.ceil(math.log(math.abs(diff) + 1)) * 4
+        print('attack player by ' .. pt)
+        if player:takeDamage(pt) then
+            over = true
+        end
+        hb.setHpTo(UI['plHealth'], player.health)
+    end
+    
+    if over then
+        timer.performWithDelay(1000, function() 
+                gameLogic:gameover(player.health > 0) end)
+    else
+        timer.performWithDelay(1000, function() gameLogic:prepare() end)
+    end
+end
+
+function gameLogic:gameover(win)
+    self.state = 'gameover'
+    composer.gotoScene("win", { effect='crossFade', time=1000,
+            params={ isWin=win } })
+end
+
 
 function gameLogic:readyForOne()
     self.ready = self.ready + 1
     if self.ready == 2 then
         print('next stage')
-        gameLogic:calculateAndPK()
+        gameLogic:calculatePoint()
     end
     
 end
@@ -338,12 +395,17 @@ function scene:create( event )
     UI['Play'] = display.newImageRect(UIGroup, 'images/UI/play.png', 32, 32)
     UI['Play'].x, UI['Play'].y = 16, 16
     UI['Play'].isVisible = false
-    --[[
-    UI['plHealBar'], UI['plHealBarBorder'] = 
-        hb.newHealthBar{ parent=UIGroup, x=centerX, y=height - 25, width=width*2/3,
-            color={1, 0.4, 0.4}, strokeColor={1, 0.2, 0.2}, strokeWidth=4 }
     
-    UI['plHealthBar'] = widget.newProgressView{ x=centerX, y=height - 25, width=width/2, }
+    ---[[
+    UI['plHealthBar'], UI['plHealth'] = 
+        hb.newHealthBar{ parent=UIGroup, x=centerX, 
+            y=height-25, width=192, height=192, cwidth=180, cheight=180 }
+        
+    UI['opHealthBar'], UI['opHealth'] = 
+        hb.newHealthBar{ parent=UIGroup, x=centerX, 
+            y=25, width=192, height=192, cwidth=180, cheight=180 }
+    
+    
     --]]
 end
  

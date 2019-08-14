@@ -14,6 +14,7 @@ local dt = {
     { op='+', data=9, grading=4, imgIndex=13, special=true },
     { op='*', data=0, grading=-3, imgIndex=14, special=true },
     { op='^', data=2, grading=4, imgIndex=15, special=true },
+    { op='cr', data=0, grading=-4, imgIndex=16, special=true },
 }
 
 
