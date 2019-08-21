@@ -27,7 +27,10 @@ end
 
 local function backToMenu(event)
     nextStep = 'menu'
-    composer.gotoScene('menu', { time=500, effect='fromTop' })
+    composer.hideOverlay('slideLeft', 250)
+    timer.performWithDelay(300, function (event)
+        composer.gotoScene('menu', { time=500, effect='fromTop' })
+        end)
 end
 
 local function Help(event)

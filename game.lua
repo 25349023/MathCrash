@@ -24,8 +24,8 @@ local UI = {}
 setmetatable(UI, weakMeta)
 
 local cardsOption = {
-    width=542,
-    height=862,
+    width=557,
+    height=875,
     numFrames=composer.getVariable('cardNums')
 }
 local cardSheet = graphics.newImageSheet("images/cards/cards.png", cardsOption)
