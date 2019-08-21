@@ -7,14 +7,32 @@ local scene = composer.newScene()
 -- the scene is removed entirely (not recycled) via "composer.removeScene()"
 -- -----------------------------------------------------------------------------------
 
+local weakMeta = { __mode='kv' }
+
 local backgroundGroup
 local backgrounds = {}
-setmetatable(backgrounds, { __mode='kv' })
+setmetatable(backgrounds, weakMeta)
 
 local UIGroup
 local UI = {}
-setmetatable(UI, { __mode='kv' })
+setmetatable(UI, weakMeta)
 
+
+local function switchOverlay()
+    composer.hideOverlay('slideLeft', 250)
+    timer.performWithDelay(300, function (event)
+            composer.showOverlay('options', { time=250, effect='fromLeft' })
+        end)
+end
+
+local function backtoPrevScene()
+    if composer.getSceneName('overlay') then
+        switchOverlay()
+    else
+        local scname = composer.getSceneName('previous')
+        composer.gotoScene(scname, { effect='slideLeft', time=400 })
+    end
+end
 
 -- -----------------------------------------------------------------------------------
 -- Scene event functions
@@ -28,36 +46,29 @@ function scene:create( event )
     local centerY = display.contentCenterY
     local width = display.contentWidth
     local height = display.contentHeight
-    local win = event.params['isWin']
-
     -- Code here runs when the scene is first created but has not yet appeared on screen
+    
     backgroundGroup = display.newGroup()
     UIGroup = display.newGroup()
     sceneGroup:insert(backgroundGroup)
     sceneGroup:insert(UIGroup)
     
-    backgrounds['bgRect'] = display.newRect(backgroundGroup, centerX, centerY, width, height)
-    backgrounds['bgRect'].fill = { 1, 1, 0.9 }
+    backgrounds['bgRect'] = display.newRect(backgroundGroup, 
+        centerX, centerY, width, height)
+    backgrounds['bgRect']:setFillColor(1, 1, 0.9)
     
-    UI['youText'] = display.newText{ parent=UIGroup, text='You', x=centerX,
-        y=centerY-125, font=composer.getVariable('UIFont'), fontSize=54 }
-    UI['youText']:setFillColor(1, 0.7, 0.2)
+    UI['title'] = display.newText{ parent=UIGroup, x=centerX, y=50, text='How to Play',
+        font=composer.getVariable('UIFont'), fontSize=36 }
+    UI['title']:setFillColor(0.2, 0.5, 0.3)
     
-    local text = win and 'Win!!' or 'Lose...'
-    UI['mainText'] = display.newText{ parent=UIGroup, text=text, x=centerX,
-        y=centerY-60, font=composer.getVariable('UIFont'), fontSize=72 }
-    UI['mainText']:setFillColor(1, 0.7, 0.2)
+    UI['back'] = display.newRoundedRect(UIGroup, centerX, height - 80, width / 2,
+        60, 8)
+    UI['back']:setFillColor(0.5, 0.3, 0.2)
+    UI['backText'] = display.newText{ parent=UIGroup, x=centerX, y=height-80,
+        text='Back', font=composer.getVariable('UIFont'), fontSize=36 }
+    UI['backText']:setFillColor(1, 1, 1)
     
-    UI['menu'] = display.newRoundedRect(UIGroup, centerX, centerY + 80,
-        200, 80, 12)
-    UI['menu']:setFillColor(0.75, 0.65, 0.55)
-    UI['menu']:addEventListener('tap', function() 
-            composer.gotoScene('menu', { effect='fromTop', time=500 }) end)
-    UI['menuText'] = display.newText{ parent=UIGroup, text='Menu', x=centerX,
-        y=centerY+80, font=composer.getVariable('UIFont'), fontSize=48 }
-    UI['menuText']:setFillColor(1, 1, 1)
-    
-    
+    UI['back']:addEventListener('tap', backtoPrevScene)
 end
 
 
@@ -72,7 +83,8 @@ function scene:show( event )
  
     elseif ( phase == "did" ) then
         -- Code here runs when the scene is entirely on screen
- 
+        print(composer.getSceneName('previous'))
+        print(composer.getSceneName('overlay'))
     end
 end
 
@@ -88,7 +100,7 @@ function scene:hide( event )
  
     elseif ( phase == "did" ) then
         -- Code here runs immediately after the scene goes entirely off screen
-        composer.removeScene('win', true)
+ 
     end
 end
 

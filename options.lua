@@ -22,13 +22,20 @@ local nextStep = ''
 
 local function Resume(event)
     nextStep = 'resume'
-    composer.hideOverlay('fade', 300)
+    composer.hideOverlay('slideRight', 250)
 end
 
 local function backToMenu(event)
     nextStep = 'menu'
-    print(composer.getSceneName('previous'))
-    composer.gotoScene('menu', { time=500, effect='crossFade' })
+    composer.gotoScene('menu', { time=500, effect='fromTop' })
+end
+
+local function Help(event)
+    nextStep = 'help'
+    composer.hideOverlay('slideRight', 250)
+    timer.performWithDelay(300, function (event)
+            composer.showOverlay('help', { time=250, effect='fromRight' })
+        end)
 end
 
 
@@ -62,24 +69,25 @@ function scene:create( event )
     
     UI['Resume'] = display.newRoundedRect(UIGroup, centerX, centerY, width * 2 / 3, 100, 10)
     UI['Resume']:setFillColor(1, 0.8, 0.5)
-    UI['Resume']:addEventListener('tap', Resume)
     UI['ResumeText'] = display.newText{ parent=UIGroup, text='Resume', x=centerX,
         y=centerY-1, font=composer.getVariable('UIFont'), fontSize=48 }
     UI['ResumeText']:setFillColor(0.9, 0.5, 0.2)
     
     UI['Menu'] = display.newRoundedRect(UIGroup, centerX, centerY + 100, width / 2, 60, 8)
     UI['Menu']:setFillColor(0.6, 0.65, 0.7)
-    UI['Menu']:addEventListener('tap', backToMenu)
     UI['MenuText'] = display.newText{ parent=UIGroup, text='Menu', x=centerX,
         y=centerY+99, font=composer.getVariable('UIFont'), fontSize=36 }
     UI['MenuText']:setFillColor(0.3, 0.35, 0.4)
-    
     
     UI['Help'] = display.newRoundedRect(UIGroup, centerX, centerY + 180, width / 2, 60, 8)
     UI['Help']:setFillColor(0.6, 0.7, 0.6)
     UI['HelpText'] = display.newText{ parent=UIGroup, text='Help', x=centerX,
         y=centerY+179, font=composer.getVariable('UIFont'), fontSize=36 }
     UI['HelpText']:setFillColor(0.3, 0.4, 0.3)
+    
+    UI['Resume']:addEventListener('tap', Resume)
+    UI['Menu']:addEventListener('tap', backToMenu)
+    UI['Help']:addEventListener('tap', Help)
     
 end
 

@@ -36,11 +36,12 @@ local player
 local playerAI
 local opponent
 
-local stageSetting = { timeLimit=6 }
+local stageSetting = { timeLimit=6, damageMultiplier=4 }
 
 local timeLeft = 3
 
 local gameLogic = { state='init', ready=0, opIdx=0, plIdx=0 }
+
 
 local hb = {}
 
@@ -189,7 +190,7 @@ local function Pause(event)
     UI['Play'].isVisible = true
     timer.pause(gameLogic.tm)
     gameLogic.state = 'pause'
-    composer.showOverlay('options', { time=300, effect='fade', isModal=true })
+    composer.showOverlay('options', { time=250, effect='fromLeft', isModal=true })
 end
 
 function scene:Resume()
@@ -280,14 +281,14 @@ function gameLogic:attack()
     local diff = player.currPoint - opponent.role.currPoint
     local over
     if diff > 0 then
-        local pt = math.ceil(math.log(diff + 1)) * 4
+        local pt = math.ceil(math.log(diff + 1)) * stageSetting.damageMultiplier
         print('attack opponent by ' .. pt)
         if opponent.role:takeDamage(pt) then
             over = true
         end
         hb.setHpTo(UI['opHealth'], opponent.role.health)
     elseif diff < 0 then
-        local pt = math.ceil(math.log(math.abs(diff) + 1)) * 4
+        local pt = math.ceil(math.log(math.abs(diff) + 1)) * stageSetting.damageMultiplier
         print('attack player by ' .. pt)
         if player:takeDamage(pt) then
             over = true
@@ -305,7 +306,8 @@ end
 
 function gameLogic:gameover(win)
     self.state = 'gameover'
-    composer.gotoScene("win", { effect='crossFade', time=1000,
+    effect = win and 'slideLeft' or 'slideRight'
+    composer.gotoScene("win", { effect=effect, time=500,
             params={ isWin=win } })
 end
 
@@ -425,7 +427,6 @@ function scene:show( event )
         transition.to(UI['TimerText'], { time=500, transition=easing.outCubic, alpha=1 })
         transition.to(UI['Timer'], { time=500, transition=easing.outCubic, alpha=0.9,
                 onComplete=function() timer.resume(tm); UI['TimerText'].alpha=1 end })
-        print(#player.deck)
     end
 end
  
