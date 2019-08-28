@@ -381,6 +381,7 @@ function scene:create( event )
     UI['midfieldLine'] = display.newLine(UIGroup, centerX - 75, centerY,
             centerX + 75, centerY)
     UI['midfieldLine']:setStrokeColor(0.6, 0.6, 0.6)
+    UI['midfieldLine'].strokeWidth = 2
     
     UI['Timer'] = display.newCircle(UIGroup, centerX, centerY, 80)
     UI['Timer']:setFillColor(0.7, 0.9, 1)

@@ -69,6 +69,33 @@ function scene:create( event )
     UI['backText']:setFillColor(1, 1, 1)
     
     UI['back']:addEventListener('tap', backtoPrevScene)
+    
+    UI['help1'] = display.newImageRect(UIGroup, 'images/help/help1.png', 250, 250)
+    UI['help1'].x, UI['help1'].y = centerX - 85, centerY - 100
+    UI['help2'] = display.newImageRect(UIGroup, 'images/help/help2.png', 250, 250)
+    UI['help2'].x, UI['help2'].y = centerX + 85, centerY - 100
+    UI['help3'] = display.newImageRect(UIGroup, 'images/help/help3.png', 250, 250)
+    UI['help3'].x, UI['help3'].y = centerX - 85, centerY + 85
+    UI['help4'] = display.newImageRect(UIGroup, 'images/help/help4.png', 250, 250)
+    UI['help4'].x, UI['help4'].y = centerX + 85, centerY + 85
+    
+    UI['cross'] = display.newImageRect(UIGroup, 'images/UI/cross.png', 256, 256)
+    UI['cross'].x, UI['cross'].y = centerX, centerY
+     
+    UI['step1'] = display.newImageRect(UIGroup, 'images/UI/step1.png', 32, 32)
+    UI['step1'].x = centerX - 16
+    UI['step1'].y = centerY - 16
+    UI['step2'] = display.newImageRect(UIGroup, 'images/UI/step2.png', 32, 32)
+    UI['step2'].x = centerX + 16
+    UI['step2'].y = centerY - 16
+    UI['step3'] = display.newImageRect(UIGroup, 'images/UI/step3.png', 32, 32)
+    UI['step3'].x = centerX - 16
+    UI['step3'].y = centerY + 16
+    UI['step4'] = display.newImageRect(UIGroup, 'images/UI/step4.png', 32, 32)
+    UI['step4'].x = centerX + 16
+    UI['step4'].y = centerY + 16
+    
+    
 end
 
 
