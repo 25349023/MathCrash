@@ -39,20 +39,22 @@ function scene:create( event )
     backgrounds['bgRect'] = display.newRect(backgroundGroup, centerX, centerY, width, height)
     backgrounds['bgRect'].fill = { 1, 1, 0.9 }
     
+    local textColor = win and {1, 0.7, 0.2} or {0.3, 0.6, 0.7}
+    local text = win and 'Win!!' or 'Lose...'
+    
     UI['youText'] = display.newText{ parent=UIGroup, text='You', x=centerX,
         y=centerY-125, font=composer.getVariable('UIFont'), fontSize=54 }
-    UI['youText']:setFillColor(1, 0.7, 0.2)
+    UI['youText']:setFillColor(unpack(textColor))
     
-    local text = win and 'Win!!' or 'Lose...'
     UI['mainText'] = display.newText{ parent=UIGroup, text=text, x=centerX,
         y=centerY-60, font=composer.getVariable('UIFont'), fontSize=72 }
-    UI['mainText']:setFillColor(1, 0.7, 0.2)
+    UI['mainText']:setFillColor(unpack(textColor))
     
     UI['menu'] = display.newRoundedRect(UIGroup, centerX, centerY + 80,
         200, 80, 12)
     UI['menu']:setFillColor(0.75, 0.65, 0.55)
     UI['menu']:addEventListener('tap', function() 
-            composer.gotoScene('menu', { effect='slideRight', time=500 }) end)
+            composer.gotoScene('menu', { effect='fromTop', time=500 }) end)
     UI['menuText'] = display.newText{ parent=UIGroup, text='Menu', x=centerX,
         y=centerY+80, font=composer.getVariable('UIFont'), fontSize=48 }
     UI['menuText']:setFillColor(1, 1, 1)

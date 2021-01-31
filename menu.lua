@@ -19,7 +19,11 @@ setmetatable(UI, weakMeta)
 
 
 function switchToGame()
-    composer.gotoScene('game', { effect='fade', time=600 })
+    composer.gotoScene('game', { effect='slideUp', time=500 })
+end
+
+function switchToHelp()
+    composer.gotoScene('help', { effect='fromLeft', time=400 })
 end
 
 
@@ -45,13 +49,20 @@ function scene:create( event )
     
     UIGroup = display.newGroup()
     sceneGroup:insert(UIGroup)
-    UI['start'] = display.newRoundedRect(UIGroup, centerX, centerY + 100, width * 2 / 3, 100, 10)
+    UI['start'] = display.newRoundedRect(UIGroup, centerX, centerY + 50, width * 2 / 3, 100, 10)
     UI['start']:setFillColor(0.4, 0.6, 1)
-    UI['startText'] = display.newText{ parent=UIGroup, x=centerX, y=centerY+100, text='Start',
+    UI['startText'] = display.newText{ parent=UIGroup, x=centerX, y=centerY+50, text='Start',
         font=composer.getVariable('UIFont'), fontSize=48 }
-    UI['startText']:setFillColor(1, 1, 0.9)
+    UI['startText']:setFillColor(1, 1, 1)
+    
+    UI['help'] = display.newRoundedRect(UIGroup, centerX, centerY + 160, width / 2, 60, 8)
+    UI['help']:setFillColor(0.4, 0.9, 0.6)
+    UI['helpText'] = display.newText{ parent=UIGroup, x=centerX, y=centerY+160, text='Help',
+        font=composer.getVariable('UIFont'), fontSize=36 }
+    UI['helpText']:setFillColor(1, 1, 1)
     
     UI['start']:addEventListener('tap', switchToGame)
+    UI['help']:addEventListener('tap', switchToHelp)
 end
  
  
