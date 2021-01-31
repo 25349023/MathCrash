@@ -37,6 +37,15 @@ settings =
 		},
 	},
 
+	window = 
+	{
+		titleText = {
+            default = "MathCrash",
+		},
+		defaultViewWidth = 720,
+		defaultViewHeight = 960,
+	},
+
 	--
 	-- Plugins section
 	--
