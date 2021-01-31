@@ -228,7 +228,7 @@ function gameLogic:newRound()
     local ind = opponent:chooseCard()
     gameLogic.opIdx = ind
     transition.moveTo(opponent.role.handCard[ind].image, 
-        { x=centerX - 100, y=centerY-50, time=400, delay=1000, transition=easing.inOutSine,
+        { x=centerX - 140, y=centerY-60, time=400, delay=1000, transition=easing.inOutSine,
           onComplete=function() gameLogic:readyForOne() end })
     
 end
@@ -237,7 +237,7 @@ function gameLogic:selectCard(ind)
     local centerX, centerY = display.contentCenterX, display.contentCenterY
     
     transition.moveTo(player.handCard[ind].image, 
-        { x=centerX + 100, y=centerY+50, time=400, transition=easing.inOutSine,
+        { x=centerX + 140, y=centerY+60, time=400, transition=easing.inOutSine,
             onComplete=function() self:readyForOne() end })
     player.handCard[ind].image.stroke = nil
     self.state = 'played'
